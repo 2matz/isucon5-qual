@@ -3,10 +3,6 @@ package main
 import (
 	"database/sql"
 	"errors"
-	"github.com/go-sql-driver/mysql"
-	"github.com/gorilla/context"
-	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
 	"html/template"
 	"log"
 	"net/http"
@@ -16,6 +12,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-sql-driver/mysql"
+	"github.com/gorilla/context"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
 )
 
 var (
@@ -298,13 +299,13 @@ func GetIndex(w http.ResponseWriter, r *http.Request) {
 	user := getCurrentUser(w, r)
 
 	prof := Profile{}
-	row := db.QueryRow(`SELECT * FROM profiles WHERE user_id = ?`, user.ID)
+	row := db.QueryRow(`SELECT user_id, first_name, last_name, sex, birthday, pref, updated_at FROM profiles WHERE user_id = ?`, user.ID)
 	err := row.Scan(&prof.UserID, &prof.FirstName, &prof.LastName, &prof.Sex, &prof.Birthday, &prof.Pref, &prof.UpdatedAt)
 	if err != sql.ErrNoRows {
 		checkErr(err)
 	}
 
-	rows, err := db.Query(`SELECT * FROM entries WHERE user_id = ? ORDER BY created_at LIMIT 5`, user.ID)
+	rows, err := db.Query(`SELECT id, user_id, private, body, created_at FROM entries WHERE user_id = ? ORDER BY created_at LIMIT 5`, user.ID)
 	if err != sql.ErrNoRows {
 		checkErr(err)
 	}
@@ -322,7 +323,7 @@ func GetIndex(w http.ResponseWriter, r *http.Request) {
 FROM comments c
 JOIN entries e ON c.entry_id = e.id
 WHERE e.user_id = ?
-ORDER BY c.created_at DESC
+ORDER BY e.created_at DESC
 LIMIT 10`, user.ID)
 	if err != sql.ErrNoRows {
 		checkErr(err)
@@ -737,9 +738,9 @@ func main() {
 		user = "isucon"
 	}
 	password := os.Getenv("ISUCON5_DB_PASSWORD")
-        if password == "" {
-                password = "isucon"
-        }
+	if password == "" {
+		password = "isucon"
+	}
 	dbname := os.Getenv("ISUCON5_DB_NAME")
 	if dbname == "" {
 		dbname = "isucon5q"
